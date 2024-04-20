@@ -4,76 +4,123 @@
 #include <chrono>
 #include <vector>
 
-#define N 3
 
-#define R1 N // number of rows in Matrix-1
-#define C1 N // number of columns in Matrix-1
-#define R2 N // number of rows in Matrix-2
-#define C2 N // number of columns in Matrix-2
-
-int res[R1][C2];
-
-void mulMat(int mat1[][C1], int mat2[][C2])
-{
-    std::cout << "Multiplication of given two matrices is:\n";
-
-    for (int i = 0; i < R1; i++) {
-        for (int j = 0; j < C2; j++) {
-            res[i][j] = 0;
-
-            for (int k = 0; k < R2; k++) {
-                res[i][j] += mat1[i][k] * mat2[k][j];
-            }
-
-            std::cout << res[i][j] << "\t";
+void fillMatrix(int** matrix, int rows, int cols) {
+    for (int i = 0; i < rows; ++i) {
+        matrix[i] = new int[cols];
+        for (int j = 0; j < cols; ++j) {
+            std::cout << "Enter value for matrix[" << i << "][" << j << "]: ";
+            std::cin >> matrix[i][j];
         }
-
-        std::cout << std::endl;
     }
 }
 
-void mulMatTh(int mat1[][C1], int mat2[][C2], int row)
-{
-    std::cout << "Multiplication of given two matrices is:\n";
+void mulMat(int** mat1, int rows1, int cols1, int** mat2, int rows2, int cols2, int** result) {
 
-    for (int i = 0; i < R1; i++) {
-        res[row][i] = 0;
-        for (int j = 0; j < C2; j++) {
-            res[row][i] += mat1[row][j] * mat2[j][i];
+    for (int i = 0; i < rows1; ++i) {
+        for (int j = 0; j < cols2; ++j) {
+            result[i][j] = 0;
+            for (int k = 0; k < cols1; ++k) {
+                result[i][j] += mat1[i][k] * mat2[k][j];
+            }
+        }
+    }
+    
+}
+
+void mulMatTh(int** mat1, int rows1, int cols1, int** mat2, int rows2, int cols2, int row, int** result)
+{
+
+    for (int i = 0; i < rows1; i++) {
+        result[row][i] = 0;
+        for (int j = 0; j < cols2; j++) {
+            result[row][i] += mat1[row][j] * mat2[j][i];
         }
     }
 }
 
 int main()
 {
-    int mat1[R1][C1] = { { 1, 1, 1 }, { 2, 2, 2 }, { 3, 3, 3 } };
+    int rows1, cols1, rows2, cols2;
 
-    int mat2[R2][C2] = { { 1, 1, 1 }, { 2, 2, 2 }, { 3, 3, 3 } };
+    std::cout << "Enter the number of rows and columns for matrix 1: ";
+    std::cin >> rows1 >> cols1;
 
+    std::cout << "Enter the number of rows and columns for matrix 2: ";
+    std::cin >> rows2 >> cols2;
+
+    int** mat1 = new int* [rows1];
+    int** mat2 = new int* [rows2];
+
+    std::cout << "Enter values for matrix 1:" << std::endl;
+    fillMatrix(mat1, rows1, cols1);
+
+    std::cout << "Enter values for matrix 2:" << std::endl;
+    fillMatrix(mat2, rows2, cols2);
+
+
+    int** result1 = new int* [rows1];
+    for (int i = 0; i < rows1; ++i) {
+        result1[i] = new int[cols2];
+    }
+
+    int** result2 = new int* [rows1];
+    for (int i = 0; i < rows1; ++i) {
+        result2[i] = new int[cols2];
+    }
+
+    
     std::vector<std::thread> threads;
 
     auto start1 = std::chrono::system_clock::now();
-    for (int i = 0; i < N; ++i) {
-        threads.emplace_back( [i, &mat1, &mat2]() { mulMatTh(mat1, mat2, i); });
+
+    for (int i = 0; i < rows1; ++i) {
+        threads.emplace_back([i, mat1, rows1, cols1, mat2, rows2, cols2, &result1]() {
+            mulMatTh(mat1, rows1, cols1, mat2, rows2, cols2, i, result1);
+            });
     }
 
     for (auto& t : threads) {
         t.join();
     }
 
-    for (int i = 0; i < N; ++i) {
-        for (int j = 0; j < N; ++j) {
-            std::cout << res[i][j] << " ";
+    std::cout << "Result of matrix multiplication:" << std::endl;
+    for (int i = 0; i < rows1; ++i) {
+        for (int j = 0; j < cols2; ++j) {
+            std::cout << result1[i][j] << " ";
         }
         std::cout << std::endl;
     }
+
+    // Free memory for result matrix
+    for (int i = 0; i < rows1; ++i) {
+        delete[] result1[i];
+    }
+    delete[] result1;
+
     auto end1 = std::chrono::system_clock::now();
     std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start1).count() << "ms with multi" << std::endl;
 
+
+
     auto start2 = std::chrono::system_clock::now();
-    mulMat(mat1, mat2);
+    mulMat(mat1, rows1, cols1, mat2, rows2, cols2, result2);
     auto end2 = std::chrono::system_clock::now();
     std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end2 - start2).count() << "ms without multi" << std::endl;
+
+    std::cout << "Result of matrix multiplication:" << std::endl;
+    for (int i = 0; i < rows1; ++i) {
+        for (int j = 0; j < cols2; ++j) {
+            std::cout << result2[i][j] << " ";
+        }
+        std::cout << std::endl;
+    }
+
+    // Free memory for result matrix
+    for (int i = 0; i < rows1; ++i) {
+        delete[] result2[i];
+    }
+    delete[] result2;
 
     return 0;
 }
