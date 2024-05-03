@@ -21,19 +21,34 @@ void threadSumMutex(int& sum, int bound) {
     }
 }
 
+void threadSumAtomic(std::atomic<int>& sum, int bound) {
+    for (int i = 0; i < bound; ++i) {
+        sum += 2;
+    }
+}
+
 int main() {
-    int sum = 0;
+    // int sum = 0;
+    std::atomic<int> atomicSum = 0;
     int bound = 1000000;
 
     std::vector<std::thread> threads;
     threads.reserve(THREADS);
 
+    /*
     for (size_t i = 0; i < THREADS; ++i)
         threads.emplace_back(threadSum, std::ref(sum), bound);
     
     for (size_t i = 0; i < THREADS; ++i)
         threads[i].join();
+     */
 
-    std::cout << "Sum is: " << sum << std::endl;
+    for (size_t i = 0; i < THREADS; ++i)
+        threads.emplace_back(threadSumAtomic, std::ref(atomicSum), bound);
+
+    for (size_t i = 0; i < THREADS; ++i)
+        threads[i].join();
+
+    std::cout << "Sum is: " << atomicSum << std::endl;
     return 0;
 }
